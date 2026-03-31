@@ -38,7 +38,7 @@ GROUP BY location
 ORDER BY total_spend DESC;
 
 -- 1.3 Top 10 Countries by Total Spending
--- USA leads global pharmaceutical spending with $7.8B, followed by Japan and Germany.
+-- USA leads global pharmaceutical, followed by Japan and Germany.
 -- The top 10 countries concentrate the vast majority of total expenditure.
 SELECT
     location,
@@ -50,7 +50,7 @@ ORDER BY total_spend DESC
 LIMIT 10;
 
 -- 1.4 Top 10 Countries by Spending per Capita
--- USA leads per capita spending ($730), followed by Malta and Switzerland.
+-- USA leads per capita spending, followed by Malta and Switzerland.
 -- Notably, smaller economies like Malta and Slovenia rank above larger ones.
 SELECT
     location,
@@ -75,7 +75,7 @@ ORDER BY avg_pc_gdp DESC
 LIMIT 10;
 
 -- 1.6 Top 10 Countries by Pharmaceutical Spending as % of Health Budget
--- Bulgaria leads with 35.28% of its health budget spent on pharmaceuticals, suggesting a 
+-- Bulgaria leads its health budget spent on pharmaceuticals, suggesting a 
 -- heavy reliance on medication over other healthcare services.
 SELECT
     location,
@@ -92,8 +92,8 @@ LIMIT 10;
 -- ========================================================================================
 
 -- 2.1 Global Spending by Year
--- Global pharmaceutical spending grew consistently from $8,492 in 1970 to a peak
--- of $1,039,235M in 2019, with a notable decline in 2022 likely due to incomplete data.
+-- Global pharmaceutical spending grew consistently in 1970 to a peak
+-- in 2019, with a notable decline in 2022 likely due to incomplete data.
 SELECT
     time                                AS year,
     ROUND(SUM(total_spend), 2)          AS total_spend,
@@ -105,7 +105,7 @@ GROUP BY time
 ORDER BY time;
 
 -- 2.2 First and Last Year Spending by Country
--- USA shows the highest absolute growth ($433,963M), nearly 4x Japan's growth ($107,628M).
+-- USA shows the highest absolute growth, nearly Japan's growth.
 SELECT
     location,
     MIN(time)                           AS first_year,
@@ -118,8 +118,7 @@ GROUP BY location
 ORDER BY absolute_growth DESC;
 
 -- 2.3 Decade Analysis
--- Global spending grew exponentially: from $152,719M in the 1970s to $9,019,498M in the 2010s,
--- a 59x increase over five decades.
+-- Global spending grew exponentially
 SELECT
     CASE
         WHEN time BETWEEN 1971 AND 1980 THEN '1970s'
@@ -156,7 +155,7 @@ LIMIT 5;
 -- ========================================================================================
 
 -- 3.1 Spending per Capita vs % of GDP by Country
--- USA leads per capita spending ($730), followed by Malta ($669) and Switzerland ($652).
+-- USA leads per capita spending, followed by Malta and Switzerland.
 -- Eastern European countries (BGR, SVK, HUN) show high GDP share but moderate per capita,
 -- reflecting lower income levels despite heavy pharmaceutical reliance.
 SELECT
@@ -169,9 +168,10 @@ GROUP BY location
 ORDER BY avg_spend_per_capita DESC;
 
 -- 3.2 Countries with Highest Spending as % of Health Budget
--- Bulgaria allocates 35.28% of its health budget to pharmaceuticals, the highest among
--- all reported countries, followed by Slovakia (29.66%) and Hungary (29.56%).
+-- Bulgaria allocates its health budget to pharmaceuticals the highest among
+-- all reported countries, followed by Slovakia and Hungary.
 -- All top 10 are Eastern European countries, suggesting a regional pattern.
+-- Note: Countries with limited data were filtered out to ensure comparability.
 SELECT
     location,
     ROUND(AVG(pc_healthxp), 2)      AS avg_pc_health,
@@ -185,9 +185,8 @@ ORDER BY avg_pc_health DESC
 LIMIT 10;
 
 -- 3.3 Countries with Lowest Spending per Capita
--- Turkey shows the lowest per capita spending ($35.17), though its data only covers
--- 1981-2000. Among well-reported countries, Norway ($221) and Denmark ($218) appear
--- low due to strong generic drug policies and price controls.
+-- Turkey shows the lowest per capita spending, though its data only covers 1981-2000.
+-- Note: Countries with limited data were filtered out to ensure comparability.
 SELECT
     location,
     ROUND(AVG(usd_cap), 2)          AS avg_spend_per_capita,
@@ -200,8 +199,8 @@ ORDER BY avg_spend_per_capita ASC
 LIMIT 10;
 
 -- 3.4 Most Consistent Reporters
--- Canada, South Korea and Iceland have the most complete data (53 years, 1970-2022).
--- Several countries like Chile (3 years) and Brazil (5 years) have very limited data,
+-- Canada, South Korea and Iceland have the most complete data.
+-- Several countries like Chile and Brazil have very limited data,
 -- which affects the reliability of their averages in other queries.
 SELECT
     location,
@@ -212,28 +211,13 @@ FROM pharma
 GROUP BY location
 ORDER BY years_reported DESC;
 
--- 3.5 Spending Efficiency: High GDP Share but Low Per Capita
--- Brazil and Portugal allocate over 1.5% of GDP to pharmaceuticals
--- but maintain relatively low per capita spending, suggesting large populations
--- or price control policies limiting individual expenditure.
-SELECT
-    location,
-    ROUND(AVG(pc_gdp), 2)           AS avg_pc_gdp,
-    ROUND(AVG(usd_cap), 2)          AS avg_spend_per_capita,
-    ROUND(AVG(pc_healthxp), 2)      AS avg_pc_health
-FROM pharma
-GROUP BY location
-HAVING avg_pc_gdp > 1.5 AND avg_spend_per_capita < 300
-ORDER BY avg_pc_gdp DESC;
-
 -- ========================================================================================
 -- 4. HEALTH BUDGET ANALYSIS
 -- ========================================================================================
 
 -- 4.1 Pharmaceutical Spending as % of Health Budget Over Time
--- The global average peaked in the 2000s (around 20%) and has been declining since,
--- reaching 12.25% in 2022. The gap between min and max across countries remains wide,
--- reflecting significant differences in national pharmaceutical policies.
+-- The global average peaked in the 2000s and has been declining since.
+-- The gap between min and max across countries remains wide.
 SELECT
     time                                AS year,
     ROUND(AVG(pc_healthxp), 2)          AS avg_pc_health,
@@ -243,37 +227,10 @@ FROM pharma
 GROUP BY time
 ORDER BY time;
 
--- 4.2 Countries Where Pharmaceutical Share of Health Budget is Increasing
--- Turkey and Greece show the largest increases in pharmaceutical share of health budget
--- (+15.41% and +10% respectively). Most countries show a declining trend,
--- suggesting a global shift toward other healthcare expenditures.
-WITH split AS (
-    SELECT
-        location,
-        AVG(CASE WHEN time <= (
-            SELECT ROUND((MIN(time) + MAX(time)) / 2)
-            FROM pharma p2
-            WHERE p2.location = p1.location
-        ) THEN pc_healthxp END)         AS first_half_avg,
-        AVG(CASE WHEN time > (
-            SELECT ROUND((MIN(time) + MAX(time)) / 2)
-            FROM pharma p2
-            WHERE p2.location = p1.location
-        ) THEN pc_healthxp END)         AS second_half_avg
-    FROM pharma p1
-    GROUP BY location
-)
-SELECT
-    location,
-    ROUND(first_half_avg, 2)            AS first_half_avg,
-    ROUND(second_half_avg, 2)           AS second_half_avg,
-    ROUND(second_half_avg - first_half_avg, 2) AS trend
-FROM split
-ORDER BY trend DESC;
-
--- 4.3 Countries with the Most Stable Health Budget Share
--- Switzerland shows the most stable pharmaceutical budget share (range of only 0.67%),
--- followed by Israel (3%) and Germany (3.82%), reflecting consistent long-term policies.
+-- 4.2 Countries with the Most Stable Health Budget Share
+-- Switzerland shows the most stable pharmaceutical budget share,
+-- followed by Israel and Germany.
+-- Note: Countries with limited data were filtered out to ensure comparability
 SELECT
     location,
     ROUND(AVG(pc_healthxp), 2)          AS avg_pc_health,
@@ -285,9 +242,9 @@ HAVING years_reported >= 10
 ORDER BY range_pc_health ASC
 LIMIT 10;
 
--- 4.4 Global Average Health Budget Share by Decade
--- The pharmaceutical share of health budgets peaked in the 2000s (19.47% average)
--- and has declined since, suggesting a global rebalancing toward other healthcare services.
+-- 4.3 Global Average Health Budget Share by Decade
+-- The pharmaceutical share of health budgets peaked in the 2000s
+-- and has declined since.
 SELECT
     CASE
         WHEN time BETWEEN 1971 AND 1980 THEN '1970s'
@@ -303,89 +260,3 @@ SELECT
 FROM pharma
 GROUP BY decade
 ORDER BY decade;
-
--- ========================================================================================
--- 5. ADVANCED ANALYSIS
--- ========================================================================================
-
--- 5.1 Country Ranking by Per Capita Spending (each year)
--- USA has held the #1 position in per capita spending consistently since 1997.
--- In the early years (1970s), France and Germany led the rankings.
-SELECT
-    time                                AS year,
-    location,
-    ROUND(usd_cap, 2)                   AS usd_cap,
-    RANK() OVER (
-        PARTITION BY time
-        ORDER BY usd_cap DESC
-    )                                   AS rank_per_capita
-FROM pharma
-ORDER BY time, rank_per_capita;
-
--- 5.2 Year-over-Year Growth in Per Capita Spending by Country
--- Korea shows the most sustained growth over 50 years, starting at $3.98 in 1970
--- and reaching $803 in 2022. Costa Rica shows the most volatile year-over-year changes,
--- including a -42% drop in 2017.
-SELECT
-    location,
-    time                                AS year,
-    ROUND(usd_cap, 2)                   AS usd_cap,
-    ROUND(LAG(usd_cap) OVER (
-        PARTITION BY location
-        ORDER BY time
-    ), 2)                               AS prev_year_usd_cap,
-    ROUND(
-        (usd_cap - LAG(usd_cap) OVER (
-            PARTITION BY location
-            ORDER BY time
-        )) / LAG(usd_cap) OVER (
-            PARTITION BY location
-            ORDER BY time
-        ) * 100
-    , 2)                                AS yoy_growth_pct
-FROM pharma
-ORDER BY location, time;
-
--- 5.3 Cumulative Spending by Country
--- USA has accumulated over $7.8 trillion in pharmaceutical spending since 1987,
--- dwarfing all other countries. Japan is second with $2.2 trillion since 1980.
-SELECT
-    location,
-    time                                AS year,
-    ROUND(total_spend, 2)               AS total_spend,
-    ROUND(SUM(total_spend) OVER (
-        PARTITION BY location
-        ORDER BY time
-    ), 2)                               AS cumulative_spend
-FROM pharma
-ORDER BY location, time;
-
--- 5.4 Countries Ranked by GDP Share Each Year
--- Bulgaria and Greece consistently rank in the top 2 for pharmaceutical GDP share
--- in recent years, while Norway and Denmark consistently rank last,
--- reflecting strong generic drug policies and price controls.
-SELECT
-    time                                AS year,
-    location,
-    ROUND(pc_gdp, 2)                    AS pc_gdp,
-    RANK() OVER (
-        PARTITION BY time
-        ORDER BY pc_gdp DESC
-    )                                   AS rank_pc_gdp
-FROM pharma
-ORDER BY time, rank_pc_gdp;
-
--- 5.5 Moving Average of Global Per Capita Spending (3-year)
--- Global per capita spending grew from $25 in 1970 to $668 in 2022.
--- The 3-year moving average confirms a smooth and sustained upward trend
--- with no major reversals, even during economic downturns.
-SELECT
-    time                                AS year,
-    ROUND(AVG(usd_cap), 2)              AS avg_usd_cap,
-    ROUND(AVG(AVG(usd_cap)) OVER (
-        ORDER BY time
-        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
-    ), 2)                               AS moving_avg_3yr
-FROM pharma
-GROUP BY time
-ORDER BY time;
