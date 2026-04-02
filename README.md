@@ -82,4 +82,4 @@ pharma_drug_spending_analysis.sql
 ---
 
 ## Dashboard
-- ![Dashboard](dashboard_pharma.png)
+![Dashboard](dashboard_pharma.png)
