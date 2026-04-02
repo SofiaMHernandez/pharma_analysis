@@ -81,6 +81,5 @@ pharma_drug_spending_analysis.sql
 
 ---
 
-## Next Steps
-- Build an interactive **Power BI dashboard** to visualize key findings across 
-  countries and time periods
+## Dashboard
+- ![Dashboard](dashboard_pharma.png)
